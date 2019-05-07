@@ -16,7 +16,7 @@ branches:
   only:
     - /^sagupta.*$/
     - tags
-
+  
 script:
   # Echo TravisCI built in enviornment variables
   - echo "^^^ TravisCI Diagnostics Variables ^^^"
@@ -32,6 +32,15 @@ script:
   - echo "Github PAT = ${GITHUB_PAT}"
   - echo "Release ID = ${RELEASE_ID}"
 
+  # Update RELEASE_ID in Package.json
+  - sed -i "s/SGPKGVER/${RELEASE_ID}/g" package.json
+  #- cat package.json | grep version
+  
+  # Update RELEASE_ID in Package-Lock.json
+  - sed -i "s/SGPKGVER/${RELEASE_ID}/g" package-lock.json
+  #- cat package-lock.json | grep version
+  
+  
   # Install Node.js Dependencies in CI
   - npm install
 
