@@ -1,17 +1,105 @@
-sudo: false
+# Added to select `Ubuntu Xenial 16.04` as Build Enviornment
+dist: xenial
+os: linux
+sudo: required
 
 language: node_js
 node_js:
-    - "6"
-    - "8"
     - "10"
 
 cache:
   directories:
     - node_modules
 
-script:
-  - npm install
-  - npm test
+# Build only sagupta and tags, and deploy same to github
+branches:
+  only:
+    - /^sagupta.*$/
+    - tags
 
-install: npm i
+script:
+  # Echo TravisCI built in enviornment variables
+  - echo "^^^ TravisCI Diagnostics Variables ^^^"
+  - echo "Build No & ID = ${TRAVIS_BUILD_NUMBER} and ${TRAVIS_BUILD_ID}"
+  - echo "Job No & ID = ${TRAVIS_JOB_NUMBER} & ${TRAVIS_JOB_ID}"
+  - echo "Commit ID = ${TRAVIS_COMMIT}"
+  - echo "Commit Message = ${TRAVIS_COMMIT_MESSAGE}"
+  - echo "Repo Slug = ${TRAVIS_REPO_SLUG}"
+  - echo "Build Directory = ${TRAVIS_BUILD_DIR}"
+  - echo "OS Name = ${TRAVIS_OS_NAME}"
+
+  - echo "^^^ Other Diagnostics Variable ^^^"
+  - echo "Github PAT = ${GITHUB_PAT}"
+  - echo "Release ID = ${RELEASE_ID}"
+
+  # Install Node.js Dependencies in CI
+  - npm install
+
+  # Build Kitematic By Package.json Scripts
+  - npm run build
+
+  # Perform testing using Package.json Scripts
+  - npm run test
+
+  # Build releases via NPM [Grunt Tasks]
+  # - Outputs: debian, redhat, mac and windows
+  # - File: './release/' folder contains zip files
+  - npm run release:windows
+  - ls -al ./release/
+
+install:
+  # Npm items
+  - npm i
+  # Wine for Electron [Needs SUDO]
+  - sudo dpkg --add-architecture i386
+  - sudo wget -qO - https://dl.winehq.org/wine-builds/winehq.key | sudo apt-key add -
+  - sudo apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ xenial main'
+  - sudo apt-get update --yes
+  - sudo apt-get install --yes --install-recommends winehq-stable
+  - wine --version
+
+before_deploy:
+  # Setup GIT User Name & EMail for TravisCI
+  - git config --global credential.helper store
+  - git config --local user.name "sachin-gupta"
+  - git config --local user.email "sachin.aut@gmail.com"
+
+  # Setup ${TRAVIS_TAG} for GitHub Releasing.
+  # [Tag will bear same value as Release number]
+  - export TRAVIS_TAG=v${RELEASE_ID}
+  # Fetch all tags from Remote Git Server
+  - git fetch -t
+  # Find if tag exist locally, if so delete tag
+  - git tag -l | grep ${TRAVIS_TAG} | xargs git tag -d
+  ## Delete the tag from remote GitHub (Later)
+  ##- git push origin :refs/tags/${TRAVIS_TAG}
+  # Safely create local tag on repository again
+  - git tag ${TRAVIS_TAG}
+
+deploy:
+  # GitHub Releases Uploading
+  provider: releases
+  api_key: "${GITHUB_PAT}"
+
+  # Artifact to Upload to Github
+  file_glob: true
+  file: release/Kitemati*.zip
+
+  # Disable Build Artifact Deletion
+  skip_cleanup: true
+
+  # Ensure GitHub is Overwritten
+  overwrite: true
+
+  # Deplyoment conditions for TravisCI
+  # (https://docs.travis-ci.com/user/deployment/#Conditional-Releases-with-on%3A)
+  on:
+    all_branches: true
+    condition: $TRAVIS_BRANCH =~ ^sagupta$ || -n $TRAVIS_TAG
+
+
+# Arrest email notifications on build success
+notifications:
+  email:
+    on_success: never
+    on_failure: always

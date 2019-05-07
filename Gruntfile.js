@@ -252,7 +252,9 @@ module.exports = function (grunt) {
         spawn: true
       },
       livereload: {
-        options: {livereload: true},
+        options: {
+          livereload: true
+        },
         files: ['build/**/*']
       },
       js: {
@@ -408,6 +410,15 @@ module.exports = function (grunt) {
     'build', 'shell:linux_npm',
     'electron:windows',
     'copy:windows', 'rcedit:exes', 'compress:windows',
+  ]);
+
+  grunt.registerTask('release:all', [
+    'release:windows',
+    'release:debian:x32',
+    'release:debian:x64',
+    'release:redhat:x32',
+    'release:redhat:x32',
+    'release:mac'
   ]);
 
   process.on('SIGINT', function () {

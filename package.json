@@ -24,6 +24,7 @@
     "release:redhat:x64": "grunt release:redhat:x64",
     "release:mac": "grunt release:mac",
     "release:windows": "grunt release:windows",
+    "release:all": "grunt release:all",
     "start": "grunt",
     "start-dev": "NODE_ENV=development grunt",
     "test": "jest -c jest-unit.json",
